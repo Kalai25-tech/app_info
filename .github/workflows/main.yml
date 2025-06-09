@@ -1,8 +1,8 @@
-name: Build and Deploy to EC2 via SSH1
+name: Build and Deploy to EC2 via SSH1 - Dev
 
 on:
   push:
-    branches: [main]  # Or your default branch
+    branches: [dev]  # Or your default branch
 
 jobs:
   build-and-deploy:
@@ -19,7 +19,7 @@ jobs:
       run: sudo docker pull nginx:latest
 
     - name: Save Docker image to tar
-      run: sudo docker save nginx:latest > my-app.tar
+      run: sudo docker save nginx:latest > my-app-dev.tar
 
     - name: Upload Docker image to EC2 and deploy
       uses: appleboy/scp-action@v0.1.7
@@ -28,7 +28,7 @@ jobs:
         username: ${{ secrets.EC2_USER }}
         key: ${{ secrets.EC2_KEY }}
         port: ${{ secrets.EC2_PORT || '22' }}
-        source: "my-app.tar"
+        source: "my-app-dev.tar"
         target: "~/"
 
     - name: SSH into EC2 and load Docker image
@@ -39,8 +39,8 @@ jobs:
         key: ${{ secrets.EC2_KEY }}
         port: ${{ secrets.EC2_PORT || '22' }}
         script: |
-          sudo docker load < ~/my-app.tar
-          sudo docker stop my-app1 || true
-          sudo docker rm my-app1 || true
-          sudo rm -rf  ~/my-app.tar
-          sudo docker run -d --name my-app1 -p 81:80 nginx:latest
+          sudo docker load < ~/my-app-dev.tar
+          #sudo docker stop my-app2 || true
+          sudo docker rm my-app2 || true
+          sudo rm -rf  ~/my-app-dev.tar
+          sudo docker run -d --name my-app2 -p 82:80 nginx:latest
