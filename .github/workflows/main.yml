@@ -40,6 +40,6 @@ jobs:
         port: ${{ secrets.EC2_PORT || '22' }}
         script: |
           sudo docker load < ~/my-app.tar
-          sudo docker stop my-app1 || true
-          sudo docker rm my-app1 || true
+          #sudo docker stop my-app1 || true
+          #sudo docker rm my-app1 || true
           sudo docker run -d --name my-app1 -p 81:80 my-app:latest
