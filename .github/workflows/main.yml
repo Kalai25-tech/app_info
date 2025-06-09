@@ -1,39 +1,42 @@
-name: Deploy Docker Image to EC2
+name: Build and Deploy to EC2 via SSH1
 
 on:
   push:
-    branches:
-      - main
+    branches: [main]  # Or your default branch
 
 jobs:
-  deploy:
-    runs-on: ubuntu-latest # Use a GitHub runner
+  build-and-deploy:
+    runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v2
+    - name: Checkout code
+      uses: actions/checkout@v4
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v1 # Use the official Docker Buildx action
+    - name: Set up Docker
+      uses: docker/setup-buildx-action@v3
 
-      #- name: Login to Docker Hub
-      #  run: |
-      #    echo ${{ secrets.DOCKERHUB_PASSWORD }} | docker login -u ${{ secrets.DOCKERHUB_USERNAME }} --password-stdin
+    - name: Save Docker image to tar
+      run: docker save nginx:latest > my-app.tar
 
-      #- name: Build and push Docker image
-      # run: |
-      #   docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/${{ secrets.IMAGE_NAME }}:latest .
-      #    docker push ${{ secrets.DOCKERHUB_USERNAME }}/${{ secrets.IMAGE_NAME }}:latest
+    - name: Upload Docker image to EC2 and deploy
+      uses: appleboy/scp-action@v0.1.7
+      with:
+        host: ${{ secrets.EC2_HOST }}
+        username: ${{ secrets.EC2_USER }}
+        key: ${{ secrets.EC2_KEY }}
+        port: ${{ secrets.EC2_PORT || '22' }}
+        source: "my-app.tar"
+        target: "~/"
 
-      - name: Install SSH key (if needed)
-        uses: webfactory/ssh-agent@v0.5.3
-        with:
-          ssh-private-key: ${{ secrets.EC2_SSH_PRIVATE_KEY }}
-
-      - name: Deploy Docker image to EC2
-        run: |
-          ssh -o StrictHostKeyChecking=no ${{ secrets.EC2_USER }}@${{ secrets.EC2_PUBLIC_IP }} << EOF
-          #  docker pull ${{ secrets.DOCKERHUB_USERNAME }}/${{ secrets.IMAGE_NAME }}:latest
-          # docker stop $(docker ps -a -q) || true
-            docker run -d -p 80:80 nginx:latest
-          EOF
+    - name: SSH into EC2 and load Docker image
+      uses: appleboy/ssh-action@v0.1.10
+      with:
+        host: ${{ secrets.EC2_HOST }}
+        username: ${{ secrets.EC2_USER }}
+        key: ${{ secrets.EC2_KEY }}
+        port: ${{ secrets.EC2_PORT || '22' }}
+        script: |
+          docker load < ~/my-app.tar
+          docker stop my-app || true
+          docker rm my-app || true
+          docker run -d --name my-app -p 81:80 my-app:latest
