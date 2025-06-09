@@ -44,3 +44,4 @@ jobs:
           sudo docker rm my-app1 || true
           sudo rm -rf  ~/my-app.tar
           sudo docker run -d --name my-app1 -p 81:80 nginx:latest
+#
